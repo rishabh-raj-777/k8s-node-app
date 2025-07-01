@@ -37,12 +37,10 @@ pipeline {
                 bat """
                 set KUBECONFIG=\"C:\\Users\\rishabh raj\\.kube\\config\"
                 kubectl set image deployment/${K8S_DEPLOYMENT} node-app=${DOCKER_IMAGE} -n ${K8S_NAMESPACE}
+                kubectl rollout status deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE}
                 """
             }
         }
-
-
-
     }
 
     post {
