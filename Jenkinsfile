@@ -32,6 +32,16 @@ pipeline {
             }
         }
 
+        stage('Apply Manifests') {
+            steps {
+                bat """
+                set KUBECONFIG=\"C:\\Users\\rishabh raj\\.kube\\config\"
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+                """
+            }
+        }
+
         stage('Deploy to Kubernetes') {
             steps {
                 bat """
