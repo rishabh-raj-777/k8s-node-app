@@ -34,9 +34,13 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                bat "kubectl set image deployment/${K8S_DEPLOYMENT} node-app=${DOCKER_IMAGE} -n ${K8S_NAMESPACE}"
+                bat '''
+                set KUBECONFIG=C:\Users\rishabh raj\.kube
+                kubectl set image deployment/${K8S_DEPLOYMENT} node-app=${DOCKER_IMAGE} -n ${K8S_NAMESPACE}
+                '''
             }
-}
+        }
+
 
     }
 
