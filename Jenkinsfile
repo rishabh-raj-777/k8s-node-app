@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'rishabhraj7/node-app'
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
-        FULL_IMAGE = "rishabhraj7/node-app:${env.BUILD_NUMBER}"
+        IMAGE_TAG = "${BUILD_NUMBER}"                       // ✅ BUILD_NUMBER is already exposed
+        FULL_IMAGE = "rishabhraj7/node-app:${BUILD_NUMBER}" // ✅ Optional, if you want
         K8S_DEPLOYMENT = 'node-app-deployment'
         K8S_NAMESPACE = 'default'
     }
@@ -18,9 +18,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    bat "docker build -t %DOCKER_IMAGE%:%IMAGE_TAG% ."
-                }
+                bat "docker build -t %DOCKER_IMAGE%:%IMAGE_TAG% ."
             }
         }
 
@@ -36,10 +34,21 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                     bat """
+                        echo 🔁 Applying Kubernetes manifests...
                         kubectl apply -f k8s\\deployment.yaml
                         kubectl apply -f k8s\\service.yaml
+
+                        echo 🔁 Setting new image...
                         kubectl set image deployment/%K8S_DEPLOYMENT% node-app=%DOCKER_IMAGE%:%IMAGE_TAG% -n %K8S_NAMESPACE%
-                        kubectl rollout status deployment/%K8S_DEPLOYMENT% -n %K8S_NAMESPACE%
+
+                        echo 🔍 Checking rollout status...
+                        kubectl rollout status deployment/%K8S_DEPLOYMENT% -n %K8S_NAMESPACE% --timeout=60s || (
+                            echo ❌ Rollout failed or timed out. Dumping pod state...
+                            kubectl get pods -n %K8S_NAMESPACE%
+                            kubectl describe deployment/%K8S_DEPLOYMENT% -n %K8S_NAMESPACE%
+                            kubectl get events -n %K8S_NAMESPACE% --sort-by=.metadata.creationTimestamp
+                            exit 1
+                        )
                     """
                 }
             }
@@ -51,7 +60,7 @@ pipeline {
             echo '✅ Deployment successful!'
         }
         failure {
-            echo '❌ Something went wrong.'
+            echo '❌ Deployment failed. Check logs above.'
         }
     }
 }
