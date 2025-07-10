@@ -32,23 +32,16 @@ pipeline {
             }
         }
 
-        stage('Apply Manifests') {
-            steps {
-                bat """
-                set KUBECONFIG=\"C:\\Users\\rishabh raj\\.kube\\config\"
-                kubectl apply -f k8s/deployment.yaml
-                kubectl apply -f k8s/service.yaml
-                """
-            }
-        }
-
         stage('Deploy to Kubernetes') {
             steps {
-                bat """
-                set KUBECONFIG=\"C:\\Users\\rishabh raj\\.kube\\config\"
-                kubectl set image deployment/${K8S_DEPLOYMENT} node-app=${DOCKER_IMAGE} -n ${K8S_NAMESPACE}
-                kubectl rollout status deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE}
-                """
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                    kubectl apply -f k8s/deployment.yaml
+                    kubectl apply -f k8s/service.yaml
+                    kubectl set image deployment/${K8S_DEPLOYMENT} node-app=${DOCKER_IMAGE} -n ${K8S_NAMESPACE}
+                    kubectl rollout status deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE}
+                    '''
+                }
             }
         }
     }
