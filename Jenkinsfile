@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'rishabhraj7/node-app'
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        FULL_IMAGE = "rishabhraj7/node-app:${env.BUILD_NUMBER}"
         K8S_DEPLOYMENT = 'node-app-deployment'
         K8S_NAMESPACE = 'default'
     }
@@ -17,7 +19,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build(env.DOCKER_IMAGE)
+                    bat "docker build -t %DOCKER_IMAGE%:%IMAGE_TAG% ."
                 }
             }
         }
@@ -25,10 +27,7 @@ pipeline {
         stage('Push to DockerHub') {
             steps {
                 withDockerRegistry([credentialsId: 'docker-hub-creds', url: '']) {
-                    script {
-                        bat "docker tag %DOCKER_IMAGE% %DOCKER_IMAGE%:latest"
-                        bat "docker push %DOCKER_IMAGE%:latest"
-                    }
+                    bat "docker push %DOCKER_IMAGE%:%IMAGE_TAG%"
                 }
             }
         }
@@ -36,12 +35,12 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                    bat '''
+                    bat """
                         kubectl apply -f k8s\\deployment.yaml
                         kubectl apply -f k8s\\service.yaml
-                        kubectl set image deployment/%K8S_DEPLOYMENT% node-app=%DOCKER_IMAGE% -n %K8S_NAMESPACE%
+                        kubectl set image deployment/%K8S_DEPLOYMENT% node-app=%DOCKER_IMAGE%:%IMAGE_TAG% -n %K8S_NAMESPACE%
                         kubectl rollout status deployment/%K8S_DEPLOYMENT% -n %K8S_NAMESPACE%
-                    '''
+                    """
                 }
             }
         }
