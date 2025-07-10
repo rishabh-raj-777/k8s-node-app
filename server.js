@@ -3,7 +3,7 @@ const app = express();
 const PORT = 3000;
 
 app.get('/', (req, res) => {
-  res.send('🎉 Hello from Kubernetes!');
+  res.send('🎉 Hello from Kubernetes! and Microsoft Azure!');
 });
 
 app.listen(PORT, () => {
