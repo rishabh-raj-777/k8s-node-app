@@ -17,7 +17,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build(DOCKER_IMAGE)
+                    docker.build(env.DOCKER_IMAGE)
                 }
             }
         }
@@ -26,7 +26,8 @@ pipeline {
             steps {
                 withDockerRegistry([credentialsId: 'docker-hub-creds', url: '']) {
                     script {
-                        docker.image(DOCKER_IMAGE).push()
+                        bat "docker tag %DOCKER_IMAGE% %DOCKER_IMAGE%:latest"
+                        bat "docker push %DOCKER_IMAGE%:latest"
                     }
                 }
             }
@@ -35,11 +36,11 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                    sh '''
-                    kubectl apply -f k8s/deployment.yaml
-                    kubectl apply -f k8s/service.yaml
-                    kubectl set image deployment/${K8S_DEPLOYMENT} node-app=${DOCKER_IMAGE} -n ${K8S_NAMESPACE}
-                    kubectl rollout status deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE}
+                    bat '''
+                        kubectl apply -f k8s\\deployment.yaml
+                        kubectl apply -f k8s\\service.yaml
+                        kubectl set image deployment/%K8S_DEPLOYMENT% node-app=%DOCKER_IMAGE% -n %K8S_NAMESPACE%
+                        kubectl rollout status deployment/%K8S_DEPLOYMENT% -n %K8S_NAMESPACE%
                     '''
                 }
             }
