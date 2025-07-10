@@ -12,6 +12,9 @@ spec:
       labels:
         app: node-app
     spec:
+      tolerations:
+        - key: "CriticalAddonsOnly"
+          operator: "Exists"
       containers:
         - name: node-app
           image: rishabhraj7/node-app
